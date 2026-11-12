@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}AI Appointment Coordinator{% endblock %}
+{% block page_title %}AI Automated Booking Agent{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Left column: Chat interface -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm d-flex flex-column" style="height: 75vh;">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></div>
+          <span class="fw-semibold"><i class="bi bi-robot text-warning me-2"></i>Hospital Autonomous AI Agent</span>
+        </div>
+        <button class="btn btn-sm btn-outline-light" onclick="clearChat()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>New Conversation
+        </button>
+      </div>
+
+      <!-- Messages container -->
+      <div class="card-body overflow-auto flex-grow-1 p-3" id="chatContainer" style="background: #f8fafc;">
+        <!-- Welcome message -->
+        <div class="d-flex gap-2 mb-3">
+          <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+            <i class="bi bi-robot"></i>
+          </div>
+          <div class="bg-white p-3 rounded-3 shadow-sm border" style="max-width: 80%;">
+            <div class="fw-semibold text-primary mb-1">Dummy Hospital AI Assistant</div>
+            <div class="small text-secondary">
+              Hello! I am your hospital's automated booking coordinator. I can help clients:
+              <ul class="mb-1 mt-2 ps-3">
+                <li>Search for doctors and specialists based on symptoms or specialty</li>
+                <li>Check open calendar slots in real-time</li>
+                <li>Verify or register patient details</li>
+                <li><strong>Instantly book and write verified appointments into MongoDB</strong></li>
+              </ul>
+              Try typing: <em>"Hi, I have knee pain and need an orthopedist"</em> or <em>"Book an appointment for Arjun Sharma with a cardiologist next Monday"</em>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick prompts -->
+      <div class="px-3 py-2 bg-light border-top d-flex gap-2 overflow-auto" style="white-space: nowrap;">
+        <button class="btn btn-outline-secondary btn-sm" onclick="sendQuickPrompt('I need a cardiologist for a routine heart checkup next Monday')">
+          ❤️ Need Cardiologist
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="sendQuickPrompt('I have knee pain and need to see an orthopedic doctor')">
+          🦴 Orthopedic Doctor
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="sendQuickPrompt('My child has a fever, is a pediatrician available?')">
+          👶 Pediatrician Check
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="sendQuickPrompt('Check my upcoming appointments for Arjun Sharma')">
+          📋 My Appointments
+        </button>
+      </div>
+
+      <!-- Input box -->
+      <div class="card-footer bg-white border-top p-3">
+        <form id="chatForm" onsubmit="handleSend(event)" class="d-flex gap-2">
+          <input type="text" id="userInput" class="form-control" placeholder="Tell me what you need, doctor preference, symptoms, or patient details..." autocomplete="off" required />
+          <button type="submit" class="btn btn-primary px-4" id="sendBtn">
+            <i class="bi bi-send-fill me-1"></i>Send
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Live Status & Real-time MongoDB Updates -->
+  <div class="col-lg-4">
+    <!-- Capabilities card -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-light fw-semibold">
+        <i class="bi bi-cpu me-2 text-primary"></i>Autonomous MCP Tool Execution
+      </div>
+      <div class="card-body small">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted">LLM Engine:</span>
+          <span class="badge bg-dark">Groq / Qwen 2.5-32B</span>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted">MCP Tools Active:</span>
+          <span class="badge bg-success">6 Tools Connected</span>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted">Database Target:</span>
+          <span class="badge bg-info text-dark">MongoDB (hospital)</span>
+        </div>
+        <hr class="my-2"/>
+        <div class="text-muted">
+          Every booking decision made by the agent triggers validation against real doctor schedules, prevents double-booking, and persists directly into MongoDB collections.
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Recent Bookings in MongoDB -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-database-check me-2 text-success"></i>Live MongoDB Bookings</span>
+        <button class="btn btn-sm btn-link text-decoration-none p-0" onclick="refreshLiveBookings()">
+          <i class="bi bi-arrow-repeat"></i> Refresh
+        </button>
+      </div>
+      <div class="card-body p-0" id="liveBookingsContainer">
+        <div class="text-center py-4 text-muted small">Loading recent bookings...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let conversationHistory = [];
+
+function appendUserMessage(text) {
+  const container = document.getElementById('chatContainer');
+  const div = document.createElement('div');
+  div.className = 'd-flex justify-content-end mb-3';
+  div.innerHTML = `
+    <div class="bg-primary text-white p-3 rounded-3 shadow-sm" style="max-width: 80%;">
+      <div class="small">${escapeHtml(text)}</div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendAssistantMessage(text, toolCalls = []) {
+  const container = document.getElementById('chatContainer');
+  const div = document.createElement('div');
+  div.className = 'd-flex gap-2 mb-3';
+  
+  let toolsHtml = '';
+  if (toolCalls && toolCalls.length > 0) {
+    toolsHtml = '<div class="mb-2">';
+    toolCalls.forEach(t => {
+      toolsHtml += `<span class="badge bg-dark-subtle text-dark border me-1 small"><i class="bi bi-gear-fill me-1 text-primary"></i>Tool: ${t.tool}</span>`;
+    });
+    toolsHtml += '</div>';
+  }
+
+  // Format line breaks and bold
+  let formatted = escapeHtml(text)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>');
+
+  div.innerHTML = `
+    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+      <i class="bi bi-robot"></i>
+    </div>
+    <div class="bg-white p-3 rounded-3 shadow-sm border" style="max-width: 80%;">
+      ${toolsHtml}
+      <div class="small text-dark">${formatted}</div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendLoading() {
+  const container = document.getElementById('chatContainer');
+  const div = document.createElement('div');
+  div.id = 'loadingIndicator';
+  div.className = 'd-flex gap-2 mb-3';
+  div.innerHTML = `
+    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+      <i class="bi bi-robot"></i>
+    </div>
+    <div class="bg-white p-3 rounded-3 shadow-sm border text-muted small d-flex align-items-center gap-2">
+      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      AI Agent is reasoning and querying hospital tools...
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeLoading() {
+  const el = document.getElementById('loadingIndicator');
+  if (el) el.remove();
+}
+
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function sendQuickPrompt(prompt) {
+  document.getElementById('userInput').value = prompt;
+  document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+}
+
+async function handleSend(e) {
+  e.preventDefault();
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendUserMessage(text);
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+  appendLoading();
+
+  conversationHistory.push({ role: 'user', content: text });
+
+  try {
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: conversationHistory })
+    });
+    const data = await res.json();
+    removeLoading();
+    document.getElementById('sendBtn').disabled = false;
+
+    if (data.error) {
+      appendAssistantMessage('⚠️ Error: ' + data.error);
+    } else {
+      conversationHistory = data.messages || conversationHistory;
+      appendAssistantMessage(data.response, data.tool_calls);
+      refreshLiveBookings();
+    }
+  } catch (err) {
+    removeLoading();
+    document.getElementById('sendBtn').disabled = false;
+    appendAssistantMessage('Network error communicating with AI agent: ' + err.message);
+  }
+}
+
+function clearChat() {
+  conversationHistory = [];
+  document.getElementById('chatContainer').innerHTML = `
+    <div class="d-flex gap-2 mb-3">
+      <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+        <i class="bi bi-robot"></i>
+      </div>
+      <div class="bg-white p-3 rounded-3 shadow-sm border" style="max-width: 80%;">
+        <div class="fw-semibold text-primary mb-1">Dummy Hospital AI Assistant</div>
+        <div class="small text-secondary">
+          New session started. How can I help you with doctor availability or booking today?
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function refreshLiveBookings() {
+  const container = document.getElementById('liveBookingsContainer');
+  try {
+    const res = await fetch('/api/recent-bookings');
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="text-center py-4 text-muted small">No bookings in MongoDB yet.</div>';
+      return;
+    }
+    let html = '<div class="list-group list-group-flush small">';
+    data.forEach(a => {
+      html += `
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <strong class="text-dark">${escapeHtml(a.patient_name || a.mrn)}</strong>
+            <span class="badge bg-success">${escapeHtml(a.status)}</span>
+          </div>
+          <div class="text-muted mt-1"><i class="bi bi-person-badge me-1"></i>${escapeHtml(a.doctor_name || a.doctor_id)}</div>
+          <div class="text-secondary" style="font-size: 0.75rem;">
+            <i class="bi bi-clock me-1"></i>${new Date(a.slot_start).toLocaleString()}
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-1">
+            <code style="font-size: 0.7rem;">${escapeHtml(a.appointment_id)}</code>
+            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">${escapeHtml(a.booked_by || 'manual')}</span>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<div class="text-danger small p-3">Failed to load live bookings.</div>';
+  }
+}
+
+// Auto-refresh bookings on load and every 10 seconds
+refreshLiveBookings();
+setInterval(refreshLiveBookings, 10000);
+</script>
+{% endblock %}

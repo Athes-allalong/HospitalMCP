@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Doctors{% endblock %}
+{% block page_title %}Doctors{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-sm-5">
+        <label class="form-label small text-muted">Specialty</label>
+        <select name="specialty" class="form-select form-select-sm">
+          <option value="">All Specialties</option>
+          {% for s in specialties %}
+          <option value="{{ s }}" {% if s == sel_specialty %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label small text-muted">Department</label>
+        <select name="dept" class="form-select form-select-sm">
+          <option value="">All Departments</option>
+          {% for d in departments %}
+          <option value="{{ d.department_id }}" {% if d.department_id == sel_dept %}selected{% endif %}>
+            {{ d.department_id }} – {{ d.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <button type="submit" class="btn btn-primary btn-sm w-100">
+          <i class="bi bi-search me-1"></i>Filter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Doctor Cards -->
+<div class="row g-3">
+  {% for doc in doctors %}
+  <div class="col-sm-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100 doctor-card">
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div class="doctor-avatar">
+            <i class="bi bi-person-circle fs-1 text-primary"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">{{ doc.name }}</h6>
+            <span class="badge bg-primary-subtle text-primary">{{ doc.specialty or '—' }}</span>
+          </div>
+        </div>
+        <div class="mb-2 small">
+          <span class="text-muted"><i class="bi bi-building me-1"></i></span>
+          {{ doc.department_name or doc.department_id or '—' }}
+        </div>
+        {% if doc.qualifications %}
+        <div class="mb-2 small text-muted">
+          <i class="bi bi-award me-1"></i>{{ doc.qualifications }}
+        </div>
+        {% endif %}
+        {% if doc.experience_years %}
+        <div class="mb-2 small text-muted">
+          <i class="bi bi-clock-history me-1"></i>{{ doc.experience_years }} years experience
+        </div>
+        {% endif %}
+        <div class="mt-auto">
+          <span class="badge bg-success-subtle text-success fs-6">
+            ₹{{ "%.0f"|format(doc.fee_inr) }}
+          </span>
+          <span class="text-muted small ms-1">consultation fee</span>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{{ url_for('doctor_detail', staff_id=doc.staff_id) }}"
+           class="btn btn-sm btn-outline-primary w-100">
+          <i class="bi bi-eye me-1"></i>View Profile
+        </a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center text-muted py-5">
+    <i class="bi bi-person-x fs-1"></i>
+    <p class="mt-2">No doctors found matching your filters.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

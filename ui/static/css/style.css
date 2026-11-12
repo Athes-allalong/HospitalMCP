@@ -1,0 +1,106 @@
+/* ───────── Layout ───────── */
+body {
+  background: #f5f7fb;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+#wrapper { min-height: 100vh; }
+
+#sidebar {
+  width: 240px;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+}
+
+#sidebar.collapsed { width: 0; overflow: hidden; }
+
+#sidebar .sidebar-brand { border-bottom: 1px solid rgba(255,255,255,.1); }
+
+#sidebar .nav-link.active {
+  background: rgba(255,255,255,.12);
+  font-weight: 600;
+}
+
+#sidebar .nav-link:hover:not(.active) {
+  background: rgba(255,255,255,.07);
+}
+
+#page-content { min-width: 0; }
+
+/* ───────── KPI Cards ───────── */
+.kpi-card { transition: transform 0.15s, box-shadow 0.15s; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08) !important; }
+
+.kpi-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* ───────── Blood badges ───────── */
+.blood-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #fff;
+  margin: 0 auto 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
+
+/* ───────── Department cards ───────── */
+.dept-card {
+  transition: transform 0.15s, box-shadow 0.15s;
+  border-left: 4px solid #0d6efd !important;
+}
+.dept-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08) !important; }
+
+/* ───────── Doctor cards ───────── */
+.doctor-card {
+  transition: transform 0.15s, box-shadow 0.15s;
+  border-top: 3px solid #0d6efd !important;
+}
+.doctor-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08) !important; }
+
+.doctor-avatar { flex-shrink: 0; }
+
+/* ───────── Tables ───────── */
+.table { font-size: 0.875rem; }
+.table td, .table th { vertical-align: middle; }
+
+/* ───────── Responsive ───────── */
+@media (max-width: 991px) {
+  #sidebar { position: fixed; z-index: 1000; height: 100vh; }
+  #sidebar.collapsed { width: 0; }
+}
+
+/* ───────── Navbar top ───────── */
+.navbar { min-height: 56px; }
+
+/* ───────── Scrollbar ───────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* ───────── Code badge ───────── */
+code { color: #6366f1; font-size: 0.85em; }
+
+/* ───────── Badges ───────── */
+.bg-primary-subtle  { background: #dbeafe !important; }
+.bg-success-subtle  { background: #dcfce7 !important; }
+.bg-danger-subtle   { background: #fee2e2 !important; }
+.bg-warning-subtle  { background: #fef9c3 !important; }
+.bg-info-subtle     { background: #e0f2fe !important; }
