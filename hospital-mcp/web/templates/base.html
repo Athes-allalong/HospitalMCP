@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}"/>
+  <title>{% block title %}Portal{% endblock %} | {{ hospital.name if hospital else 'Hospital MCP' }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<div class="d-flex" id="wrapper">
+  {% if me %}
+  <div id="sidebar" class="bg-dark text-white d-flex flex-column">
+    <div class="sidebar-brand py-4 px-3 d-flex align-items-center gap-2">
+      <i class="bi bi-hospital fs-4 text-info"></i>
+      <span class="fw-bold">{{ hospital.name if hospital else 'Platform' }}</span>
+    </div>
+    <hr class="text-secondary mx-3 my-0"/>
+    <nav class="flex-grow-1 px-2 py-3">
+      {% macro nav(endpoint, icon, text, show=True) %}
+        {% if show %}
+        <a href="{{ url_for(endpoint) }}" class="nav-link text-white py-2 px-3 rounded mb-1 {% if request.endpoint and request.endpoint.startswith(endpoint) %}active{% endif %}">
+          <i class="bi bi-{{ icon }} me-2"></i>{{ text }}</a>
+        {% endif %}
+      {% endmacro %}
+      {% if me.role == 'platform_admin' %}
+        {{ nav('platform', 'buildings', 'Hospitals') }}
+      {% else %}
+        {{ nav('home', 'speedometer2', 'Dashboard') }}
+        {{ nav('departments', 'building', 'Departments') }}
+        {{ nav('doctors', 'person-badge', 'Doctors') }}
+        {{ nav('patients', 'people', 'Patients', can('search_patients')) }}
+        {{ nav('appointments', 'calendar-check', 'Appointments', can('list_appointments')) }}
+        {{ nav('facilities', 'activity', 'Facilities', can('get_icu_occupancy')) }}
+        {{ nav('assistant', 'robot', 'AI Assistant') }}
+        {{ nav('admin', 'shield-lock', 'Admin console', can('list_staff_users')) }}
+      {% endif %}
+    </nav>
+    <div class="px-3 py-3 small border-top border-secondary">
+      <div class="fw-semibold">{{ me.name or me.email }}</div>
+      <div class="text-secondary">{{ me.role|label }}{% if me.department_id %} · {{ me.department_id }}{% endif %}</div>
+      <a href="{{ url_for('logout') }}" class="link-light small"><i class="bi bi-box-arrow-right me-1"></i>Sign out</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div id="page-content" class="flex-grow-1 d-flex flex-column">
+    <nav class="navbar navbar-light bg-white border-bottom px-4 py-2 shadow-sm">
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+      <span class="navbar-text fw-semibold text-dark">{% block page_title %}{% endblock %}</span>
+      <span class="ms-auto d-flex gap-2 align-items-center">
+        {% if auth_mode == 'dev' %}<span class="badge bg-warning text-dark" title="Local development sign-in">DEV MODE</span>{% endif %}
+        <span class="badge bg-info text-dark"><i class="bi bi-clock me-1"></i><span id="clock"></span></span>
+      </span>
+    </nav>
+    <div class="px-4 pt-3">
+      {% for cat, msg in get_flashed_messages(with_categories=true) %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">{{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+      {% endfor %}
+    </div>
+    <main class="flex-grow-1 p-4">{% block content %}{% endblock %}</main>
+    <footer class="text-center text-muted small py-2 border-top">
+      Hospital MCP · synthetic demo data only, no real patients · times in Asia/Kolkata
+    </footer>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const CSRF = document.querySelector('meta[name=csrf-token]').content;
+  function tick() { const c = document.getElementById('clock'); if (c) c.textContent = new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'}); }
+  tick(); setInterval(tick, 30000);
+  document.getElementById('sidebarToggle')?.addEventListener('click', () => document.getElementById('sidebar')?.classList.toggle('collapsed'));
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

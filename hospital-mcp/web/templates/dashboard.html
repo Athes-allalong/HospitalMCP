@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% macro kpi(icon, color, label, value) %}
+  <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm kpi-card"><div class="card-body d-flex align-items-center gap-3">
+    <div class="kpi-icon bg-{{ color }}-subtle text-{{ color }}"><i class="bi bi-{{ icon }}"></i></div>
+    <div><div class="text-muted small">{{ label }}</div><div class="fs-3 fw-bold">{{ value }}</div></div>
+  </div></div></div>
+  {% endmacro %}
+  {{ kpi('person-badge-fill', 'success', 'Active doctors', doctor_total) }}
+  {{ kpi('building-fill', 'warning', 'Departments', depts|selectattr('kind', 'equalto', 'clinical')|list|length) }}
+  {% if appts %}{{ kpi('calendar-check-fill', 'info', 'Booked (next 3 days)', appts.count) }}{% endif %}
+  {% if cards.get_icu_occupancy %}{{ kpi('hospital', 'danger', 'ICU beds free', cards.get_icu_occupancy.available) }}{% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+  {% if cards.get_icu_occupancy %}{% set icu = cards.get_icu_occupancy %}
+  <div class="col-md-6"><div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-danger text-white fw-semibold"><i class="bi bi-hospital me-2"></i>ICU</div>
+    <div class="card-body">
+      {% set pct = ((icu.occupied / icu.total_beds * 100)|int) if icu.total_beds else 0 %}
+      <div class="d-flex justify-content-between mb-2"><span>Occupied <strong>{{ icu.occupied }}</strong></span>
+        <span>Free <strong class="text-success">{{ icu.available }}</strong></span><span>Total <strong>{{ icu.total_beds }}</strong></span></div>
+      <div class="progress" style="height:12px;"><div class="progress-bar bg-danger" style="width:{{ pct }}%">{{ pct }}%</div></div>
+      <div class="small text-muted mt-2">Ventilators {{ icu.ventilators_in_use }}/{{ icu.ventilators_total }} in use ·
+        General ward {{ icu.general_ward_occupancy_percent }}% full</div>
+    </div></div></div>
+  {% endif %}
+  {% if cards.get_er_status %}{% set er = cards.get_er_status %}
+  <div class="col-md-6"><div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-warning text-dark fw-semibold"><i class="bi bi-lightning-charge-fill me-2"></i>Emergency room</div>
+    <div class="card-body"><div class="row text-center">
+      <div class="col"><div class="fs-2 fw-bold text-warning">{{ er.wait_minutes }}</div><div class="text-muted small">Wait (min)</div></div>
+      <div class="col"><div class="fs-2 fw-bold text-primary">{{ er.triage_queue }}</div><div class="text-muted small">Triage queue</div></div>
+      <div class="col"><div class="fs-2 fw-bold {{ 'text-danger' if er.on_diversion else 'text-success' }}">{{ 'ON' if er.on_diversion else 'OFF' }}</div><div class="text-muted small">Diversion</div></div>
+    </div></div></div></div>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  {% if cards.get_blood_inventory %}
+  <div class="col-md-5"><div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-dark text-white fw-semibold"><i class="bi bi-droplet-fill me-2 text-danger"></i>Blood bank</div>
+    <div class="card-body"><div class="d-flex flex-wrap gap-3 justify-content-center">
+      {% for b in cards.get_blood_inventory.blood_stock %}
+      <div class="text-center"><div class="blood-badge {% if b.units <= 5 %}bg-danger{% elif b.units <= 10 %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ b.blood_group }}</div>
+        <div class="small text-muted">{{ b.units }} units</div></div>
+      {% endfor %}
+    </div></div></div></div>
+  {% endif %}
+  {% if appts %}
+  <div class="col-md-7"><div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-info text-dark fw-semibold d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-calendar-week me-2"></i>Upcoming appointments{% if me.role == 'doctor' %} (yours){% endif %}</span>
+      <a href="{{ url_for('appointments') }}" class="btn btn-sm btn-outline-dark">View all</a></div>
+    <div class="card-body p-0">
+      {% if appts.appointments %}
+      <table class="table table-hover mb-0 small"><thead class="table-light"><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Type</th></tr></thead><tbody>
+        {% for a in appts.appointments %}
+        <tr><td>{{ a.slot_start|dt }}</td><td>{{ a.patient_name }} <span class="text-muted">{{ a.mrn }}</span></td><td>{{ a.doctor_name }}</td>
+          <td><span class="badge bg-secondary">{{ a.type }}</span></td></tr>
+        {% endfor %}</tbody></table>
+      {% else %}<div class="text-center text-muted py-4">No upcoming appointments</div>{% endif %}
+    </div></div></div>
+  {% endif %}
+  {% if not cards and not appts %}
+  <div class="col-12"><div class="alert alert-light border">Your role ({{ me.role|label }}) works mostly through
+    <a href="{{ url_for('assistant') }}">the AI assistant</a>{% if can('get_invoice') %} and billing tools{% endif %}.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

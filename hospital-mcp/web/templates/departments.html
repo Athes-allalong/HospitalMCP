@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+{% block page_title %}Departments{% endblock %}
+{% block content %}
+<div class="row g-3">
+{% for d in depts %}
+  <div class="col-md-6 col-xl-4"><div class="card border-0 shadow-sm h-100">
+    <div class="card-header d-flex justify-content-between"><span class="fw-semibold">{{ d.name }}</span>
+      <span class="badge {{ 'bg-primary' if d.kind == 'clinical' else 'bg-secondary' }}">{{ d.kind }}</span></div>
+    <div class="card-body small">
+      <div><i class="bi bi-geo-alt me-1"></i>{{ d.location }}{% if d.phone_ext %} · Ext {{ d.phone_ext }}{% endif %}</div>
+      {% if d.head_name %}<div><i class="bi bi-person-badge me-1"></i>Head: {{ d.head_name }}</div>{% endif %}
+      {% if d.hours %}<div><i class="bi bi-clock me-1"></i>{{ d.hours }}</div>{% endif %}
+      <ul class="mt-2 mb-2 ps-3">{% for s in d.services or [] %}<li>{{ s }}</li>{% endfor %}</ul>
+      {% set st = status.get(d.department_id) %}
+      {% if st %}<div class="border-top pt-2">OPD queue <strong>{{ st.opd_queue_length }}</strong> · est. wait <strong>{{ st.estimated_wait_minutes }} min</strong>
+        {% if st.staff_on_duty %}<div class="text-muted">On duty: {{ st.staff_on_duty|map(attribute='name')|join(', ') }}</div>{% endif %}</div>{% endif %}
+      {% if d.kind == 'clinical' %}<a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('doctors', department=d.department_id) }}">Doctors</a>{% endif %}
+    </div></div></div>
+{% endfor %}
+</div>
+{% endblock %}

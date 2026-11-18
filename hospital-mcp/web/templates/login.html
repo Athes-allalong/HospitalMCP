@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block page_title %}Sign in (development){% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="alert alert-warning small">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      <strong>Development sign-in.</strong> Pick a seeded account. With <code>AUTH_MODE=auth0</code> this page is replaced by
+      the real Auth0 sign-in, and this list is never shown.
+    </div>
+    {% set ns = namespace(h=None) %}
+    {% for u in users %}
+      {% if u.hospital_id != ns.h %}
+        {% if not loop.first %}</div></div>{% endif %}
+        {% set ns.h = u.hospital_id %}
+        <div class="card shadow-sm border-0 mb-3"><div class="card-header fw-semibold">
+          {{ hospitals.get(u.hospital_id, 'Platform') }}</div><div class="list-group list-group-flush">
+      {% endif %}
+      <form method="post" action="{{ url_for('login_dev') }}" class="list-group-item d-flex align-items-center gap-3">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="email" value="{{ u.email }}"/>
+        <span class="badge bg-secondary" style="width:110px">{{ u.role|label }}</span>
+        <span class="flex-grow-1"><strong>{{ u.name }}</strong> <span class="text-muted small">{{ u.email }}</span>
+          {% if u.department_id %}<span class="badge bg-light text-dark">{{ u.department_id }}</span>{% endif %}</span>
+        <button class="btn btn-sm btn-primary">Sign in</button>
+      </form>
+      {% if loop.last %}</div></div>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

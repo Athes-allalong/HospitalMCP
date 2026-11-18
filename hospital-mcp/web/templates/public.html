@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ info.name }}{% endblock %}
+{% block page_title %}{{ info.name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-5 order-last order-lg-first">
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <h4 class="mb-0">{{ info.name }}</h4><div class="text-muted mb-3">{{ info.tagline }}</div>
+      <div class="small"><i class="bi bi-clock me-1"></i>Visiting hours: {{ info.visiting_hours }}</div>
+      {% if info.emergency %}<div class="small"><i class="bi bi-heart-pulse me-1"></i>{{ info.emergency }}</div>{% endif %}
+      {% if info.phone %}<div class="small"><i class="bi bi-telephone me-1"></i>{{ info.phone }}</div>{% endif %}
+      <div class="small mt-2 text-muted">{{ info.new_patient_info }}</div>
+    </div></div>
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body row text-center">
+      <div class="col"><div class="fs-3 fw-bold">{{ er.estimated_wait_minutes if er.estimated_wait_minutes is not none else '—' }}</div><div class="small text-muted">ER wait (min)</div></div>
+      <div class="col"><div class="fs-3 fw-bold">{{ icu.beds_available }}</div><div class="small text-muted">ICU beds ({{ icu.icu_beds_status }})</div></div>
+    </div></div>
+    <div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Departments</div><ul class="list-group list-group-flush small">
+      {% for d in depts %}<li class="list-group-item d-flex justify-content-between"><span>{{ d.name }}</span><span class="text-muted">{{ d.location }}</span></li>{% endfor %}</ul></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm chat-card">
+      <div class="card-header small text-muted"><i class="bi bi-chat-dots me-1"></i>Ask us about doctors, timings, departments, insurance and bed availability.
+        This chatbot cannot see any patient records or book appointments.</div>
+      {% if not llm_ready %}<div class="alert alert-warning small m-2">Chatbot offline (no GROQ_API_KEY configured).</div>{% endif %}
+      <div class="card-body chat-log" id="log"><div class="text-muted small text-center py-4" id="hint">
+        Try: “Which cardiologists do you have?” · “Is Dr. Sharma free on Friday?” · “Do you accept Star Health?”</div></div>
+      <form class="card-footer d-flex gap-2" id="chatForm"><input class="form-control" id="msg" placeholder="Type your question…" maxlength="1000"/>
+        <button class="btn btn-primary" id="sendBtn"><i class="bi bi-send"></i></button></form>
+    </div>
+    <div class="small text-muted mt-2">For medical emergencies go to the Emergency Room or call 108. This assistant does not give medical advice.</div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+<script>initChat({endpoint: "{{ url_for('api_public_chat', slug=slug) }}", confirmBase: "/none/"});</script>
+{% endblock %}

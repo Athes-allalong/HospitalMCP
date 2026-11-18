@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Doctors{% endblock %}
+{% block page_title %}Doctors{% endblock %}
+{% block content %}
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-3"><input class="form-control" name="name" placeholder="Name" value="{{ f.name or '' }}"/></div>
+  <div class="col-md-3"><input class="form-control" name="specialty" placeholder="Specialty or focus" value="{{ f.specialty or '' }}"/></div>
+  <div class="col-md-3"><select class="form-select" name="department"><option value="">All departments</option>
+    {% for d in depts if d.kind == 'clinical' %}<option value="{{ d.department_id }}" {% if f.department == d.department_id %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+  </select></div>
+  {% if request.args.get('mrn') %}<input type="hidden" name="mrn" value="{{ request.args.get('mrn') }}"/>{% endif %}
+  <div class="col-md-3"><button class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Search</button></div>
+</form>
+<div class="card border-0 shadow-sm"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Doctor</th><th>Department</th><th>Experience</th><th>Fee</th><th></th></tr></thead>
+  <tbody>
+  {% for d in res.doctors %}
+  <tr><td><strong>{{ d.name }}</strong><div class="small text-muted">{{ d.staff_id }}</div></td><td>{{ d.department }}</td>
+    <td>{{ d.experience_years }} yrs</td><td>₹{{ '%.0f'|format(d.consultation_fee_inr) }}</td>
+    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('doctor_detail', staff_id=d.staff_id, mrn=request.args.get('mrn')) }}">Profile & slots</a></td></tr>
+  {% else %}<tr><td colspan="5" class="text-center text-muted py-4">No doctors found.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<div class="d-flex justify-content-between mt-2 small text-muted"><span>{{ res.total }} doctors</span>
+  <span>{% if page > 1 %}<a href="?{{ request.query_string.decode()|replace('page=' ~ page, '') }}&page={{ page-1 }}">Previous</a>{% endif %}
+  {% if res.total > page * 20 %}<a class="ms-2" href="?{{ request.query_string.decode()|replace('page=' ~ page, '') }}&page={{ page+1 }}">Next</a>{% endif %}</span></div>
+{% endblock %}

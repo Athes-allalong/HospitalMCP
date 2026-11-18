@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-xl-9">
+  {% if not llm_ready %}<div class="alert alert-warning small">The assistant needs <code>GROQ_API_KEY</code> in <code>.env</code>. The rest of the portal works without it.</div>{% endif %}
+  <div class="card border-0 shadow-sm chat-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="small text-muted"><i class="bi bi-shield-lock me-1"></i>Acting as <strong>{{ me.name or me.email }}</strong> ({{ me.role|label }}) at {{ hospital.name }}. It can only do what your role can do.</span>
+      <button class="btn btn-sm btn-outline-secondary" id="resetBtn">New chat</button></div>
+    <div class="card-body chat-log" id="log">
+      {% for m in history %}<div class="msg {{ m.role }}"><div class="bubble"></div><script type="application/json">{{ m.content|tojson }}</script></div>{% endfor %}
+      {% if not history %}<div class="text-muted small text-center py-4" id="hint">
+        Try: “Find a cardiologist free tomorrow afternoon” · “Book Dr. Sharma tomorrow at 3 PM for MRN-1001” ·
+        “How many ICU beds are free?” · “Does Star Health cover surgery?”</div>{% endif %}
+    </div>
+    <form class="card-footer d-flex gap-2" id="chatForm">
+      <input class="form-control" id="msg" placeholder="Ask about doctors, slots, bookings, beds…" autocomplete="off" maxlength="4000"/>
+      <button class="btn btn-primary" id="sendBtn"><i class="bi bi-send"></i></button></form>
+  </div>
+  <div class="small text-muted mt-2">The assistant schedules and looks things up. It never gives medical advice. Changes only happen when you press Confirm.</div>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+<script>
+  initChat({endpoint: "{{ url_for('api_chat') }}", confirmBase: "/api/confirm/", resetUrl: "{{ url_for('api_chat_reset') }}"});
+</script>
+{% endblock %}

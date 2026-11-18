@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ d.name }}{% endblock %}
+{% block page_title %}{{ d.name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-body">
+    <h5 class="mb-1">{{ d.name }}</h5><div class="text-muted mb-3">{{ d.specialty }} · {{ d.department_name }}</div>
+    <dl class="row small mb-0">
+      <dt class="col-5">Staff ID</dt><dd class="col-7">{{ d.staff_id }}</dd>
+      <dt class="col-5">Experience</dt><dd class="col-7">{{ d.experience_years }} years</dd>
+      <dt class="col-5">Focus</dt><dd class="col-7">{{ (d.focus_areas or [])|join(', ') }}</dd>
+      <dt class="col-5">Qualifications</dt><dd class="col-7">{{ (d.qualifications or [])|join(', ') }}</dd>
+      <dt class="col-5">Languages</dt><dd class="col-7">{{ (d.languages or [])|join(', ') }}</dd>
+      <dt class="col-5">Room</dt><dd class="col-7">{{ d.room }}</dd>
+      <dt class="col-5">Fee</dt><dd class="col-7">₹{{ '%.0f'|format(d.consultation_fee_inr) }}</dd>
+    </dl>
+    <hr/><div class="small fw-semibold mb-1">Weekly OPD</div>
+    {% for day, wins in d.schedule.items() %}<div class="small"><span class="text-uppercase text-muted" style="width:40px;display:inline-block">{{ day }}</span>
+      {% for w in wins %}{{ w[0] }}–{{ w[1] }}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endfor %}
+    <hr/><div class="small text-muted">{{ d.bio.untrusted_text }}</div>
+  </div></div></div>
+  <div class="col-lg-8"><div class="card border-0 shadow-sm"><div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold">Open slots, {{ start.strftime('%d %b') }} + 6 days</span>
+      <form class="d-flex gap-2" method="get">
+        <input type="date" class="form-control form-control-sm" name="from" value="{{ start.isoformat() }}"/>
+        <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for t in ['new', 'followup', 'teleconsult'] %}<option {% if typ == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-outline-secondary">Go</button></form></div>
+    <div class="card-body">
+      {% if can('book_appointment') %}
+      <form method="post" action="{{ url_for('action', tool='book_appointment') }}" id="bookForm">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="doctor_id" value="{{ d.staff_id }}"/><input type="hidden" name="type" value="{{ typ }}"/>
+        <input type="hidden" name="next" value="{{ request.full_path }}"/>
+        <div class="row g-2 mb-3">
+          <div class="col-md-4"><input class="form-control" name="mrn" placeholder="Patient MRN, e.g. MRN-1001" value="{{ prefill_mrn }}" required/></div>
+          <div class="col-md-5"><input class="form-control" name="reason" placeholder="Reason (optional)"/></div>
+          <div class="col-md-3 small text-muted">Pick a slot below. You will see a preview before anything is booked.</div>
+        </div>
+      {% endif %}
+      {% for day, slots in by_day.items() %}
+        <div class="mb-2"><div class="small fw-semibold">{{ day|day }}</div>
+          {% for s in slots %}
+            {% if can('book_appointment') %}<button class="btn btn-sm btn-outline-success m-1" name="slot_start" value="{{ s }}">{{ s[11:16] }}</button>
+            {% else %}<span class="badge bg-success-subtle text-success m-1">{{ s[11:16] }}</span>{% endif %}
+          {% endfor %}</div>
+      {% else %}<div class="text-muted">No open slots in this range.</div>{% endfor %}
+      {% if can('book_appointment') %}</form>{% endif %}
+    </div></div></div>
+</div>
+{% endblock %}

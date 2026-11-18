@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block page_title %}Appointments{% endblock %}
+{% block content %}
+<form class="row g-2 mb-3">
+  <div class="col-auto"><input type="date" class="form-control" name="from" value="{{ d0 }}"/></div>
+  <div class="col-auto"><input type="date" class="form-control" name="to" value="{{ d1 }}"/></div>
+  <div class="col-auto"><select class="form-select" name="status">{% for st in ['booked', 'completed', 'cancelled', ''] %}
+    <option value="{{ st }}" {% if status == st %}selected{% endif %}>{{ st or 'all' }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><button class="btn btn-primary">Show</button></div>
+</form>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0 small">
+  <thead class="table-light"><tr><th>When</th><th>Patient</th><th>Doctor</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for a in (res.appointments if res else []) %}
+  <tr><td>{{ a.slot_start|dt }}</td><td><a href="{{ url_for('patient_detail', mrn=a.mrn) }}">{{ a.patient_name }}</a> <span class="text-muted">{{ a.mrn }}</span></td>
+    <td>{{ a.doctor_name }}</td><td>{{ a.type }}</td><td><span class="badge bg-{{ 'primary' if a.status == 'booked' else 'secondary' }}">{{ a.status }}</span>
+      {% if a.late_cancellation %}<span class="badge bg-warning text-dark">late</span>{% endif %}</td>
+    <td class="text-end">{% if a.status == 'booked' and can('cancel_appointment') and (me.role != 'doctor' or a.doctor_id == me.subject) %}
+      <form method="post" action="{{ url_for('action', tool='cancel_appointment') }}" class="d-flex gap-1 justify-content-end">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="appointment_id" value="{{ a.appointment_id }}"/>
+        <input class="form-control form-control-sm" style="max-width:160px" name="reason" placeholder="Reason" required/>
+        <button class="btn btn-sm btn-outline-danger">Cancel…</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="6" class="text-center text-muted py-4">No appointments in this range.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

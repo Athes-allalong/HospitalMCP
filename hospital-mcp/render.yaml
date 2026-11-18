@@ -1,0 +1,33 @@
+# Render blueprint: two free web services from one repo. Database: MongoDB Atlas (free M0 cluster).
+# In Render: New + -> Blueprint -> pick this repo, then fill in the environment variables marked sync: false.
+services:
+  - type: web
+    name: hospital-mcp
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - { key: AUTH_MODE, value: auth0 }
+      - { key: MCP_HOST, value: 0.0.0.0 }
+      - { key: MONGO_URI, sync: false }
+      - { key: MONGO_DB, value: hospital_mcp }
+      - { key: AUTH0_DOMAIN, sync: false }
+      - { key: MCP_PUBLIC_URL, sync: false }     # e.g. https://hospital-mcp.onrender.com
+      - { key: AUTH0_AUDIENCE, sync: false }     # e.g. https://hospital-mcp.onrender.com/mcp
+
+  - type: web
+    name: hospital-portal
+    runtime: docker
+    plan: free
+    dockerCommand: sh -c 'gunicorn -w 1 --threads 8 -b 0.0.0.0:$PORT "web.app:create_app()"'
+    envVars:
+      - { key: AUTH_MODE, value: auth0 }
+      - { key: MONGO_URI, sync: false }
+      - { key: MONGO_DB, value: hospital_mcp }
+      - { key: AUTH0_DOMAIN, sync: false }
+      - { key: AUTH0_AUDIENCE, sync: false }
+      - { key: AUTH0_CLIENT_ID, sync: false }
+      - { key: AUTH0_CLIENT_SECRET, sync: false }
+      - { key: WEB_BASE_URL, sync: false }       # e.g. https://hospital-portal.onrender.com
+      - { key: WEB_SECRET_KEY, generateValue: true }
+      - { key: GROQ_API_KEY, sync: false }

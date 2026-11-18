@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Facilities{% endblock %}
+{% block page_title %}Facilities{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% set icu = data.get_icu_occupancy %}{% set er = data.get_er_status %}
+  <div class="col-lg-6"><div class="card border-0 shadow-sm h-100"><div class="card-header fw-semibold">ICU & wards</div><div class="card-body">
+    <p class="mb-1">ICU: <strong>{{ icu.available }}</strong> of {{ icu.total_beds }} beds free · ventilators {{ icu.ventilators_in_use }}/{{ icu.ventilators_total }}</p>
+    <p class="small text-muted">General ward {{ icu.general_ward_occupancy_percent }}% full · updated {{ icu.updated_at|dt }}</p>
+    {% if can('update_facility_status') %}
+    <form method="post" action="{{ url_for('action', tool='update_facility_status') }}" class="row g-2">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="facility" value="icu"/>
+      <div class="col-6"><label class="form-label small">Occupied beds</label><input type="number" min="0" class="form-control form-control-sm" name="field_occupied" value="{{ icu.occupied }}"/></div>
+      <div class="col-6"><label class="form-label small">Ventilators in use</label><input type="number" min="0" class="form-control form-control-sm" name="field_ventilators_in_use" value="{{ icu.ventilators_in_use }}"/></div>
+      <div class="col-12"><button class="btn btn-sm btn-outline-primary">Update ICU</button></div></form>
+    {% endif %}</div></div></div>
+  <div class="col-lg-6"><div class="card border-0 shadow-sm h-100"><div class="card-header fw-semibold">Emergency room</div><div class="card-body">
+    <p>Wait <strong>{{ er.wait_minutes }} min</strong> · triage queue {{ er.triage_queue }} · diversion {{ 'ON' if er.on_diversion else 'off' }}</p>
+    {% if can('update_facility_status') %}
+    <form method="post" action="{{ url_for('action', tool='update_facility_status') }}" class="row g-2">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="facility" value="er"/>
+      <div class="col-6"><label class="form-label small">Wait (min)</label><input type="number" min="0" class="form-control form-control-sm" name="field_wait_minutes" value="{{ er.wait_minutes }}"/></div>
+      <div class="col-6"><label class="form-label small">Triage queue</label><input type="number" min="0" class="form-control form-control-sm" name="field_triage_queue" value="{{ er.triage_queue }}"/></div>
+      <div class="col-12"><button class="btn btn-sm btn-outline-primary">Update ER</button></div></form>
+    {% endif %}</div></div></div>
+  <div class="col-lg-6"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Blood bank</div>
+    <table class="table table-sm mb-0">{% for b in data.get_blood_inventory.blood_stock %}<tr><td>{{ b.blood_group }}</td><td>{{ b.units }} units</td></tr>{% endfor %}</table></div></div>
+  {% if ot %}<div class="col-lg-6"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Operating theatres today</div>
+    <table class="table table-sm mb-0 small">{% for o in ot.bookings %}<tr><td>{{ o.theatre }}</td><td>{{ o.start }}</td><td>{{ o.procedure }}</td><td>{{ o.surgeon }}</td></tr>
+    {% else %}<tr><td class="text-muted">Nothing scheduled.</td></tr>{% endfor %}</table></div></div>{% endif %}
+</div>
+{% endblock %}

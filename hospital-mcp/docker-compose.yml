@@ -1,0 +1,39 @@
+# Local stack: MongoDB (single-node replica set) + MCP server + web portal.
+#   docker compose up --build
+#   docker compose run --rm mcp python -m hospital_mcp.cli seed
+# Then open http://localhost:5000 (portal) and point MCP Inspector at http://localhost:8000/mcp
+services:
+  mongo:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports: ["27017:27017"]
+    volumes: ["mongo-data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval",
+             "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"]
+      interval: 5s
+      retries: 20
+
+  mcp:
+    build: .
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/?replicaSet=rs0
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8000"
+      ALLOW_DEV_IN_CONTAINER: "1"   # local only: lets AUTH_MODE=dev listen inside the container
+    ports: ["8000:8000"]
+    depends_on: { mongo: { condition: service_healthy } }
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/?replicaSet=rs0
+      PORT: "5000"
+    command: ["gunicorn", "-w", "1", "--threads", "8", "-b", "0.0.0.0:5000", "web.app:create_app()"]
+    ports: ["5000:5000"]
+    depends_on: { mongo: { condition: service_healthy } }
+
+volumes:
+  mongo-data:

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Admin console{% endblock %}
+{% block page_title %}Admin console · {{ hospital.name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-xxl-8"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Staff users</div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0 small">
+      <thead class="table-light"><tr><th>Code</th><th>Name</th><th>E-mail (sign-in)</th><th>Role</th><th>Dept</th><th>Status</th><th></th></tr></thead><tbody>
+      {% for u in users %}
+      <tr class="{{ '' if u.active else 'text-muted' }}"><td class="text-nowrap">{{ u.subject }}</td><td class="text-nowrap">{{ u.name }}</td><td>{{ u.email }}</td>
+        <td>{% if u.active %}<form method="post" action="{{ url_for('action', tool='change_staff_role') }}" class="d-flex gap-1">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="subject" value="{{ u.subject }}"/>
+            <select name="new_role" class="form-select form-select-sm" style="width:auto">{% for r in ['receptionist','nurse','doctor','billing','admin'] %}
+              <option {% if r == u.role %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
+            <button class="btn btn-sm btn-outline-secondary py-0">Set</button></form>{% else %}{{ u.role }}{% endif %}</td>
+        <td>{{ u.department_id or '' }}</td><td>{{ 'active' if u.active else 'deactivated' }}</td>
+        <td>{% if u.active %}<form method="post" action="{{ url_for('action', tool='deactivate_staff_user') }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="subject" value="{{ u.subject }}"/>
+          <button class="btn btn-sm btn-outline-danger py-0" title="Deactivate"><i class="bi bi-person-x"></i> Off…</button></form>{% endif %}</td></tr>
+      {% endfor %}</tbody></table></div></div></div>
+  <div class="col-xxl-4"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Add a staff user</div>
+    <form class="card-body" method="post" action="{{ url_for('action', tool='create_staff_user') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}"/>
+      <input class="form-control form-control-sm mb-2" name="name" placeholder="Full name" required/>
+      <input class="form-control form-control-sm mb-2" name="email" placeholder="Sign-in e-mail" required/>
+      <input class="form-control form-control-sm mb-2" name="subject" placeholder="Staff code, e.g. REC-002 (doctors: staff ID)" required/>
+      <select class="form-select form-select-sm mb-2" name="role">{% for r in ['receptionist','nurse','doctor','billing','admin'] %}<option>{{ r }}</option>{% endfor %}</select>
+      <select class="form-select form-select-sm mb-2" name="department_id"><option value="">No department</option>
+        {% for d in depts %}<option value="{{ d.department_id }}">{{ d.name }}</option>{% endfor %}</select>
+      <button class="btn btn-sm btn-primary w-100">Preview</button>
+      <div class="small text-muted mt-2">They sign in with this e-mail. The account is linked to their sign-in on first login.</div>
+    </form></div></div>
+  <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold d-flex justify-content-between">Audit log
+      <form class="d-flex gap-1">{% for k in ['actor', 'tool'] %}<input class="form-control form-control-sm" name="{{ k }}" placeholder="{{ k }}" value="{{ flt[k] or '' }}"/>{% endfor %}
+        <select class="form-select form-select-sm" name="outcome"><option value="">any outcome</option>{% for o in ['ok','denied','error','previewed'] %}<option {% if flt.outcome == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+        <button class="btn btn-sm btn-outline-primary">Filter</button></form></div>
+    <div class="table-responsive" style="max-height:420px"><table class="table table-sm mb-0 small"><thead class="table-light sticky-top"><tr><th>When</th><th>Who</th><th>Role</th><th>Tool</th><th>Target</th><th>Outcome</th><th>Change</th></tr></thead><tbody>
+      {% for e in log %}<tr><td>{{ e.at|dt }}</td><td>{{ e.actor }}</td><td>{{ e.role }}</td><td>{{ e.tool }}</td><td>{{ e.target or '' }}</td>
+        <td><span class="badge bg-{{ {'ok':'success','denied':'danger','error':'warning','previewed':'secondary'}.get(e.outcome, 'light') }}">{{ e.outcome }}</span> {{ e.error_code or '' }}</td>
+        <td class="text-muted">{% if e.after %}{{ e.after|tojson|truncate(80) }}{% endif %}</td></tr>
+      {% else %}<tr><td colspan="7" class="text-muted">No entries.</td></tr>{% endfor %}</tbody></table></div></div></div>
+</div>
+{% endblock %}

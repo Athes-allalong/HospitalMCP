@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ mrn }}{% endblock %}
+{% block page_title %}Patient {{ mrn }}{% endblock %}
+{% block content %}
+{% set p = s.get_patient_summary %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <h5 class="mb-0">{{ p.name }}</h5><div class="text-muted small mb-2">{{ p.mrn }} · view: <span class="badge bg-light text-dark">{{ p.view }}</span></div>
+      <dl class="row small mb-0">
+        <dt class="col-5">Sex / DOB</dt><dd class="col-7">{{ p.sex }} · {{ p.dob }}</dd>
+        <dt class="col-5">Phone</dt><dd class="col-7">{{ p.phone }}</dd>
+        <dt class="col-5">Email</dt><dd class="col-7">{{ p.email }}</dd>
+        {% if p.blood_group %}<dt class="col-5">Blood group</dt><dd class="col-7">{{ p.blood_group }}</dd>{% endif %}
+        {% if p.allergies is defined %}<dt class="col-5">Allergies</dt><dd class="col-7">{{ p.allergies|join(', ') or 'None recorded' }}</dd>{% endif %}
+        <dt class="col-5">Insurance</dt><dd class="col-7">{% if p.insurance %}{{ p.insurance.provider_id }} · {{ p.insurance.policy_no }}{% else %}None{% endif %}</dd>
+      </dl></div></div>
+    {% if s.get_admission_status %}{% set a = s.get_admission_status %}
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body small">
+      {% if a.admitted %}<span class="badge bg-danger">Admitted</span> {{ a.ward }}, bed {{ a.bed }} since {{ a.admitted_at|dt }}
+      {% else %}<span class="badge bg-success">Not admitted</span>{% endif %}</div></div>{% endif %}
+    {% if can('book_appointment') %}<a class="btn btn-primary w-100" href="{{ url_for('doctors') }}?mrn={{ mrn }}"><i class="bi bi-calendar-plus me-1"></i>Book from the doctor list</a>{% endif %}
+  </div>
+  <div class="col-lg-8">
+    {% if s.get_appointment_history %}
+    <div class="card border-0 shadow-sm mb-3"><div class="card-header fw-semibold">Appointments</div>
+      <table class="table table-sm mb-0 small"><tbody>
+      {% for a in s.get_appointment_history.appointments %}
+        <tr><td>{{ a.slot_start|dt }}</td><td>{{ a.doctor_name }}</td><td><span class="badge bg-{{ 'primary' if a.status == 'booked' else 'secondary' }}">{{ a.status }}</span></td>
+          <td class="text-end">{% if a.status == 'booked' and can('cancel_appointment') %}
+            <form method="post" action="{{ url_for('action', tool='cancel_appointment') }}" class="d-inline">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}"/><input type="hidden" name="appointment_id" value="{{ a.appointment_id }}"/>
+              <input type="hidden" name="reason" value="Cancelled from patient page"/>
+              <button class="btn btn-sm btn-outline-danger py-0">Cancel…</button></form>{% endif %}</td></tr>
+      {% else %}<tr><td class="text-muted">None</td></tr>{% endfor %}</tbody></table></div>
+    {% endif %}
+    {% if s.get_patient_history %}
+    <div class="card border-0 shadow-sm mb-3"><div class="card-header fw-semibold">Visit history</div><div class="card-body small">
+      {% for v in s.get_patient_history.visits %}<div class="mb-2"><strong>{{ v.date }}</strong> · {{ v.diagnosis }}<div class="text-muted">{{ v.summary }}</div></div>
+      {% else %}<div class="text-muted">No visits.</div>{% endfor %}
+      {% for n in s.get_patient_history.clinical_notes %}<div class="border-start ps-2 mb-2"><span class="text-muted">{{ n.created_at|dt }} · {{ n.doctor_id }}</span><div>{{ n.untrusted_text }}</div></div>{% endfor %}
+    </div></div>{% endif %}
+    {% if s.list_prescriptions %}
+    <div class="card border-0 shadow-sm mb-3"><div class="card-header fw-semibold">Prescriptions</div><ul class="list-group list-group-flush small">
+      {% for r in s.list_prescriptions.prescriptions %}<li class="list-group-item">{{ r.issued_at|dt }} · {{ r['items']|join('; ') }}</li>
+      {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}</ul></div>{% endif %}
+    {% if s.get_lab_results %}
+    <div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Lab results</div><ul class="list-group list-group-flush small">
+      {% for l in s.get_lab_results.lab_results %}<li class="list-group-item"><strong>{{ l.test_name }}</strong> ({{ l.reported_at|dt }}):
+        {% for k, v in l.results.items() %}{{ k }} {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}</li>
+      {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}</ul></div>{% endif %}
+    {% if not s.get_patient_history and not s.get_lab_results %}
+    <div class="alert alert-light border small"><i class="bi bi-lock me-1"></i>Clinical records are not available to your role.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

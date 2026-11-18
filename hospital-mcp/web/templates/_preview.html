@@ -1,0 +1,11 @@
+<dl class="row small mb-0">
+{% for k, v in preview.items() if k != 'action' %}
+  <dt class="col-sm-4">{{ k|label }}</dt>
+  <dd class="col-sm-8">
+    {% if v is mapping %}{% for k2, v2 in v.items() %}<div><span class="text-muted">{{ k2|label }}:</span> {{ v2 }}</div>{% endfor %}
+    {% elif v is iterable and v is not string %}{% for x in v %}<div>{{ x }}</div>{% else %}<span class="text-muted">none</span>{% endfor %}
+    {% elif k in ('start', 'end', 'from', 'to') %}{{ v|dt }}
+    {% else %}{{ v }}{% endif %}
+  </dd>
+{% endfor %}
+</dl>

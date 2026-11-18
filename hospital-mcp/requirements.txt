@@ -1,0 +1,11 @@
+# Runtime
+mcp[cli]>=1.12          # MCP Python SDK. Tested with 2.3 (MCPServer); 1.x (FastMCP) is also supported.
+pymongo>=4.7
+pydantic>=2.7
+PyJWT[crypto]>=2.8      # token verification (RS256 via Auth0 JWKS, HS256 for dev tokens)
+requests>=2.31
+Flask>=3.0
+gunicorn>=22.0          # production web server (Linux / Docker)
+
+# Development
+pytest>=8.0

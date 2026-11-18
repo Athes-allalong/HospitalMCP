@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Patients{% endblock %}
+{% block page_title %}Patients{% endblock %}
+{% block content %}
+<div class="row g-3">
+<div class="col-lg-8">
+  <form class="d-flex gap-2 mb-3"><input class="form-control" name="q" value="{{ q }}" placeholder="Search by name, phone or MRN (min. 2 characters)" autofocus/>
+    <button class="btn btn-primary"><i class="bi bi-search"></i></button></form>
+  {% if me.role == 'doctor' %}<div class="small text-muted mb-2">You only see patients you treat.</div>
+  {% elif me.role == 'nurse' %}<div class="small text-muted mb-2">You only see patients of your department.</div>{% endif %}
+  {% if res %}
+  <div class="card border-0 shadow-sm"><table class="table table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>MRN</th><th>Name</th><th>Sex</th><th>DOB</th><th>Phone</th><th></th></tr></thead><tbody>
+    {% for p in res.patients %}<tr><td>{{ p.mrn }}</td><td>{{ p.name }}</td><td>{{ p.sex }}</td><td>{{ p.dob }}</td><td>{{ p.phone }}</td>
+      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('patient_detail', mrn=p.mrn) }}">Open</a></td></tr>
+    {% else %}<tr><td colspan="6" class="text-center text-muted py-4">No matching patients.</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% endif %}
+</div>
+{% if can('register_patient') %}
+<div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-header fw-semibold">Register a new patient</div>
+  <form class="card-body" method="post" action="{{ url_for('action', tool='register_patient') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}"/>
+    <input class="form-control mb-2" name="name" placeholder="Full name" required/>
+    <input class="form-control mb-2" name="phone" placeholder="Phone, e.g. +919812345678" required/>
+    <div class="row g-2 mb-2"><div class="col"><select class="form-select" name="sex"><option>F</option><option>M</option><option>O</option></select></div>
+      <div class="col"><input type="date" class="form-control" name="dob" required/></div></div>
+    <input class="form-control mb-2" name="email" placeholder="Email (optional)"/>
+    <button class="btn btn-success w-100">Register</button>
+    <div class="small text-muted mt-2">Synthetic demo: do not enter real people's details.</div>
+  </form></div></div>
+{% endif %}
+</div>
+{% endblock %}
